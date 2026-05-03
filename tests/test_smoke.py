@@ -9,4 +9,4 @@ def test_package_importable() -> None:
 
 def test_version_exposed() -> None:
     assert hasattr(cdd, "__version__")
-    assert cdd.__version__ == "0.0.1"
+    assert cdd.__version__ == "0.1.0"

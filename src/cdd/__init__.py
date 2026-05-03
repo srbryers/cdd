@@ -23,7 +23,7 @@ from cdd.loop import Loop, LoopStateError
 from cdd.protocols import Adapter, Generator
 from cdd.types import DeterminismTier, LogEntry, ModelIdentity, Verdict
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 __all__ = [
     "Adapter",

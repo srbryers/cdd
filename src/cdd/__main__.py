@@ -14,7 +14,7 @@ from cdd import __version__
 
 def main() -> int:
     print(f"cdd v{__version__} — Critique-Driven Development")
-    print("CLI is pre-alpha. See https://github.com/srbryers/cdd")
+    print("CLI lands in v0.3.0. See https://github.com/srbryers/cdd")
     return 0
 
 
