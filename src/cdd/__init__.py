@@ -9,14 +9,31 @@ v0.x; expect breaking changes until v1.0. See the README for the
 conceptual framing.
 """
 
+from cdd.log import (
+    LOG_SCHEMA_VERSION,
+    Log,
+    LogConsistencyError,
+    LogSchemaError,
+    read_log,
+    write_log,
+)
+from cdd.protocols import Adapter, Generator
 from cdd.types import DeterminismTier, LogEntry, ModelIdentity, Verdict
 
 __version__ = "0.0.1"
 
 __all__ = [
+    "Adapter",
     "DeterminismTier",
+    "Generator",
+    "LOG_SCHEMA_VERSION",
+    "Log",
+    "LogConsistencyError",
     "LogEntry",
+    "LogSchemaError",
     "ModelIdentity",
     "Verdict",
     "__version__",
+    "read_log",
+    "write_log",
 ]
