@@ -1,18 +1,18 @@
 {
   "name": "CDD Roadmap",
-  "description": "Critique-Driven Development — pre-alpha through v1.0 stability. Each sprint corresponds to a SemVer release. Originated as authoring discipline for FATHOMS; dogfooded from there until stable.",
+  "description": "Critique-Driven Development — pre-alpha through v1.0 stability. Each sprint corresponds to a SemVer release. Originated as authoring discipline for FATHOMS; dogfooded from there until stable. v0.1.5 'Protocol Hardening' sprint inserted post-architect-review of v0.1.0; folds the architectural findings that would otherwise compound by v0.2.0.",
   "phases": [
     {
       "name": "Pre-alpha — package + abstractions",
-      "sprints": [1, 2, 3]
+      "sprints": [1, 2, 3, 4]
     },
     {
       "name": "Alpha — CLI + dogfooding",
-      "sprints": [4, 5, 6]
+      "sprints": [5, 6, 7]
     },
     {
       "name": "Beta — stability + extraction",
-      "sprints": [7, 8, 9]
+      "sprints": [8, 9, 10]
     }
   ],
   "sprints": [
@@ -50,6 +50,7 @@
       "par": 5,
       "slope": 2,
       "type": "feature",
+      "status": "complete",
       "tickets": [
         {
           "key": "S2-1",
@@ -85,64 +86,103 @@
     },
     {
       "id": 3,
-      "theme": "v0.2.0 — First AI generator",
+      "theme": "v0.1.5 — Protocol hardening (post-review)",
       "par": 4,
-      "slope": 1,
+      "slope": 3,
       "type": "feature",
       "tickets": [
         {
           "key": "S3-1",
-          "title": "Anthropic generator implementation",
-          "club": "short_iron",
-          "complexity": "standard"
+          "title": "GenerationRequest/Result types + generic Adapter[T]/Generator[T] (arch F1)",
+          "club": "long_iron",
+          "complexity": "multi_package"
         },
         {
           "key": "S3-2",
-          "title": "Model identity + version recording in log",
-          "club": "short_iron",
-          "complexity": "standard"
+          "title": "Adapter stage/commit/discard split — defer persistence to ACCEPT (arch F3, F9)",
+          "club": "long_iron",
+          "complexity": "multi_package"
         },
         {
           "key": "S3-3",
-          "title": "Determinism Tier A/B/C declared per adapter",
+          "title": "Determinism tier negotiation in Loop (record negotiated tier, raise on impossible) (arch F5)",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
           "key": "S3-4",
-          "title": "Integration test: generate -> review -> log -> replay",
-          "club": "short_iron",
-          "complexity": "standard"
+          "title": "Document batch-propose pattern (N-rejects-1-accept with shared batch_id) (arch F4)",
+          "club": "wedge",
+          "complexity": "small"
         }
       ]
     },
     {
       "id": 4,
-      "theme": "v0.3.0 — CLI",
+      "theme": "v0.2.0 — First AI generator",
       "par": 5,
       "slope": 2,
       "type": "feature",
       "tickets": [
         {
           "key": "S4-1",
-          "title": "cdd init — scaffolds a critique session",
+          "title": "Anthropic generator implementation",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
           "key": "S4-2",
+          "title": "Model identity + version recording — surface persist-failure recovery (code F6)",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S4-3",
+          "title": "Single-int seed → seed-as-extra-params convention (arch F11)",
+          "club": "wedge",
+          "complexity": "small"
+        },
+        {
+          "key": "S4-4",
+          "title": "cdd.testing — protocol-conformance harness + InMemoryAdapter for downstream tests (arch F7)",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S4-5",
+          "title": "Integration test: generate -> review -> log -> replay (real provider)",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "theme": "v0.3.0 — CLI",
+      "par": 5,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S5-1",
+          "title": "cdd init — scaffolds a critique session",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S5-2",
           "title": "cdd review — interactive iteration loop",
           "club": "long_iron",
           "complexity": "multi_package"
         },
         {
-          "key": "S4-3",
+          "key": "S5-3",
           "title": "cdd replay — regenerate artifact from log",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S4-4",
+          "key": "S5-4",
           "title": "cdd diff — compare two log iterations",
           "club": "wedge",
           "complexity": "small"
@@ -150,59 +190,59 @@
       ]
     },
     {
-      "id": 5,
-      "theme": "v0.4.0 — More generators (OpenAI, fal.ai)",
+      "id": 6,
+      "theme": "v0.4.0 — More generators (OpenAI, fal.ai) + JSONL append mode",
       "par": 4,
       "slope": 1,
       "type": "feature",
       "tickets": [
         {
-          "key": "S5-1",
+          "key": "S6-1",
           "title": "OpenAI generator",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S5-2",
+          "key": "S6-2",
           "title": "fal.ai image generator (for vegetation/texture work)",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S5-3",
-          "title": "Multi-provider integration tests",
-          "club": "wedge",
-          "complexity": "small"
+          "key": "S6-3",
+          "title": "JSONL append mode for large logs (arch F8)",
+          "club": "short_iron",
+          "complexity": "standard"
         }
       ]
     },
     {
-      "id": 6,
+      "id": 7,
       "theme": "v0.5.0 — First FATHOMS adapter (dogfood proof)",
       "par": 5,
       "slope": 3,
       "type": "feature",
       "tickets": [
         {
-          "key": "S6-1",
+          "key": "S7-1",
           "title": "Vegetation density adapter (in fathoms-game/town/cdd_adapters/)",
           "club": "long_iron",
           "complexity": "multi_package"
         },
         {
-          "key": "S6-2",
+          "key": "S7-2",
           "title": "Adapter consumes splatmap + slope + water mask",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S6-3",
+          "key": "S7-3",
           "title": "Critique loop validates a real Nassau biome",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S6-4",
+          "key": "S7-4",
           "title": "Issues filed against srbryers/cdd from dogfood",
           "club": "wedge",
           "complexity": "small"
@@ -210,48 +250,33 @@
       ]
     },
     {
-      "id": 7,
-      "theme": "v0.6.0 — Determinism enforcement + replay fidelity",
-      "par": 4,
-      "slope": 2,
-      "type": "feature",
-      "tickets": [
-        {
-          "key": "S7-1",
-          "title": "Tier A strict-replay byte-identical guarantees",
-          "club": "long_iron",
-          "complexity": "multi_package"
-        },
-        {
-          "key": "S7-2",
-          "title": "Tier B graceful degradation on model deprecation",
-          "club": "short_iron",
-          "complexity": "standard"
-        },
-        {
-          "key": "S7-3",
-          "title": "Replay diff visualization",
-          "club": "short_iron",
-          "complexity": "standard"
-        }
-      ]
-    },
-    {
       "id": 8,
-      "theme": "v0.7.0+ — Hardening from dogfood feedback",
+      "theme": "v0.6.0 — Determinism enforcement + replay fidelity + params_schema",
       "par": 4,
       "slope": 2,
       "type": "feature",
       "tickets": [
         {
           "key": "S8-1",
-          "title": "Address top issues filed during S6+",
+          "title": "Tier A strict-replay byte-identical guarantees",
           "club": "long_iron",
           "complexity": "multi_package"
         },
         {
           "key": "S8-2",
-          "title": "API freeze candidate — public surface review",
+          "title": "Tier B graceful degradation on model deprecation",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S8-3",
+          "title": "Replay diff visualization",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S8-4",
+          "title": "Adapter.params_schema for replay validation (arch F10)",
           "club": "short_iron",
           "complexity": "standard"
         }
@@ -259,26 +284,47 @@
     },
     {
       "id": 9,
+      "theme": "v0.7.0+ — Hardening from dogfood feedback",
+      "par": 4,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S9-1",
+          "title": "Address top issues filed during S7+",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S9-2",
+          "title": "API freeze candidate — public surface review (incl. supports_seed → honors_seed rename per arch F14)",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 10,
       "theme": "v1.0.0 — Stable + PyPI release",
       "par": 4,
       "slope": 2,
       "type": "release",
       "tickets": [
         {
-          "key": "S9-1",
+          "key": "S10-1",
           "title": "Public API stability commitment",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S9-2",
+          "key": "S10-2",
           "title": "Publish cdd-loop to PyPI",
           "club": "short_iron",
           "complexity": "standard"
         },
         {
-          "key": "S9-3",
-          "title": "Discipline writeup published (blog/talk)",
+          "key": "S10-3",
+          "title": "Discipline writeup published (blog/talk); subordinate FATHOMS in README (arch F16)",
           "club": "short_iron",
           "complexity": "standard"
         }

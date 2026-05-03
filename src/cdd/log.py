@@ -8,20 +8,30 @@ A Log is one critique session. It owns:
 The Log validates structural invariants on append:
   - iteration numbers are strictly 1, 2, 3, ...
   - parent_id of entry N points to entry N-1
-  - artifact_type matches the session declaration
+  - entry.id is unique within the chain and not equal to its own parent_id
+  - cannot append past a resolved (ACCEPT or ABANDON) session
+
+When a log is read from disk via :func:`read_log`, every entry is
+re-appended through :meth:`Log.append` so chain validation runs on
+load — a hand-edited or corrupted YAML cannot produce a Log that
+silently disagrees with its own invariants.
 
 Logs are append-only by convention (mutating past entries breaks the
 authorship trail). The dataclass is not frozen because we append
 during a session, but read code should never mutate ``entries``.
 
 YAML format is human-editable on purpose — readers will inspect old
-logs to understand authorship decisions. Multi-line prompts read
-cleanly; comments are preserved on round-trip via the canonical
-serializer.
+logs to understand authorship decisions.
+
+Schema version uses SemVer-style ``MAJOR.MINOR``:
+  - same MAJOR is required (forward and backward read works)
+  - higher MINOR is read with a warning (additive fields tolerated)
+  - lower MINOR reads cleanly (this CDD speaks the older shape too)
 """
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -31,11 +41,15 @@ import yaml
 
 from cdd.types import DeterminismTier, LogEntry, ModelIdentity, Verdict
 
-LOG_SCHEMA_VERSION = 1
-"""Bumped when the YAML schema breaks backward compatibility.
+_LOG_SCHEMA_VERSION = "1.0"
+"""Bumped per SemVer rules:
 
-Increment requires a migrator. Logs of older versions can still be
-read but may need transformation."""
+  - MAJOR bump: breaking change to the schema (requires a migrator).
+  - MINOR bump: additive change (older readers ignore unknown fields,
+    newer readers warn when reading older logs).
+
+Internal — not part of the public API. Migration tooling and tests
+import it directly; consumers should not."""
 
 
 class LogSchemaError(ValueError):
@@ -72,8 +86,15 @@ class Log:
     entries: list[LogEntry] = field(default_factory=list)
     """The chain of entries, oldest first. Append-only by convention."""
 
-    cdd_log_version: int = LOG_SCHEMA_VERSION
-    """Schema version of this log. Set automatically; preserve on read."""
+    cdd_log_version: str = _LOG_SCHEMA_VERSION
+    """SemVer ``MAJOR.MINOR`` schema version. Set automatically on new
+    logs; preserved on round-trip read."""
+
+    parent_session_id: str | None = None
+    """Optional pointer to a previous session whose accepted artifact
+    this session revises. Enables multi-session authorship lineage
+    without breaking the per-session append-only chain. None for
+    sessions that aren't revisions."""
 
     # ---------- chain navigation ----------
 
@@ -105,9 +126,16 @@ class Log:
     def append(self, entry: LogEntry) -> None:
         """Add an entry to the chain, validating consistency.
 
+        Invariants enforced:
+          - cannot append past a resolved session
+          - iteration must equal ``len(entries) + 1``
+          - parent_id must equal the previous entry's id (or None for first)
+          - entry.id must not already exist in the chain (uniqueness;
+            this also forbids self-parent loops, since any reachable
+            self-parent is necessarily a duplicate)
+
         Raises:
-            LogConsistencyError: if iteration number is wrong, parent_id
-                doesn't match, or appending past a resolved session.
+            LogConsistencyError: if any invariant is violated.
         """
         if self.is_resolved():
             raise LogConsistencyError(
@@ -128,7 +156,38 @@ class Log:
                 f"got {entry.parent_id!r}"
             )
 
+        if any(e.id == entry.id for e in self.entries):
+            raise LogConsistencyError(
+                f"duplicate entry id within chain: {entry.id!r}"
+            )
+
         self.entries.append(entry)
+
+
+# ---------- schema versioning helpers ----------
+
+
+def _parse_schema_version(raw: Any) -> tuple[int, int]:
+    """Parse ``MAJOR.MINOR`` into a tuple of ints.
+
+    Raises :class:`LogSchemaError` for any malformed value.
+    """
+    if not isinstance(raw, str):
+        raise LogSchemaError(
+            f"cdd_log_version must be a string in MAJOR.MINOR form, "
+            f"got {type(raw).__name__}: {raw!r}"
+        )
+    parts = raw.split(".")
+    if len(parts) != 2:
+        raise LogSchemaError(
+            f"cdd_log_version must be in MAJOR.MINOR form, got {raw!r}"
+        )
+    try:
+        return int(parts[0]), int(parts[1])
+    except ValueError as exc:
+        raise LogSchemaError(
+            f"cdd_log_version must be MAJOR.MINOR with integer parts, got {raw!r}"
+        ) from exc
 
 
 # ---------- serialization ----------
@@ -137,40 +196,79 @@ class Log:
 def to_dict(log: Log) -> dict[str, Any]:
     """Serialize a Log to a plain-dict form suitable for YAML / JSON.
 
-    Round-trips losslessly via :func:`from_dict`.
+    Round-trips losslessly via :func:`from_dict` when the schema is
+    unchanged, and forward-tolerantly across MINOR version bumps.
+
+    This function is importable but not part of the top-level public
+    API; consumers typically use :func:`read_log` / :func:`write_log`.
     """
-    return {
+    out: dict[str, Any] = {
         "cdd_log_version": log.cdd_log_version,
         "session_id": log.session_id,
         "artifact_type": log.artifact_type,
         "determinism_tier": log.determinism_tier.value,
         "created_at": log.created_at.isoformat(),
-        "entries": [_entry_to_dict(e) for e in log.entries],
     }
+    if log.parent_session_id is not None:
+        out["parent_session_id"] = log.parent_session_id
+    out["entries"] = [_entry_to_dict(e) for e in log.entries]
+    return out
 
 
-def from_dict(data: dict[str, Any]) -> Log:
+def from_dict(data: Any) -> Log:
     """Deserialize a Log from a plain-dict form (the inverse of :func:`to_dict`).
 
+    Replays each entry through :meth:`Log.append`, so any chain
+    inconsistency in the source raises :class:`LogConsistencyError`
+    rather than producing a silently-broken Log.
+
     Raises:
-        LogSchemaError: if cdd_log_version is unsupported.
-        KeyError / ValueError: on missing or malformed fields.
+        LogSchemaError: if cdd_log_version is missing, malformed, or
+            of an unsupported MAJOR version.
+        LogConsistencyError: if the loaded entries fail chain
+            validation (corrupt parent_id, iteration skip, etc.).
+        KeyError: on missing required top-level fields.
     """
-    version = data.get("cdd_log_version")
-    if version != LOG_SCHEMA_VERSION:
+    if not isinstance(data, dict):
         raise LogSchemaError(
-            f"unsupported cdd_log_version: {version!r} "
-            f"(this CDD speaks version {LOG_SCHEMA_VERSION})"
+            f"expected a YAML mapping at top level, got {type(data).__name__}; "
+            "this does not appear to be a CDD log file"
         )
 
-    return Log(
-        cdd_log_version=version,
+    raw_version = data.get("cdd_log_version")
+    if raw_version is None:
+        raise LogSchemaError(
+            "missing cdd_log_version — this does not appear to be a CDD log file"
+        )
+
+    file_major, file_minor = _parse_schema_version(raw_version)
+    expected_major, expected_minor = _parse_schema_version(_LOG_SCHEMA_VERSION)
+
+    if file_major != expected_major:
+        raise LogSchemaError(
+            f"unsupported cdd_log_version major: {raw_version!r} "
+            f"(this CDD speaks {_LOG_SCHEMA_VERSION}; major bump indicates "
+            "a migration is required)"
+        )
+
+    if file_minor > expected_minor:
+        warnings.warn(
+            f"log written with cdd_log_version {raw_version} but this CDD "
+            f"speaks {_LOG_SCHEMA_VERSION}; new fields may be silently dropped",
+            stacklevel=3,
+        )
+
+    log = Log(
+        cdd_log_version=raw_version,
         session_id=data["session_id"],
         artifact_type=data["artifact_type"],
         determinism_tier=DeterminismTier(data["determinism_tier"]),
         created_at=datetime.fromisoformat(data["created_at"]),
-        entries=[_entry_from_dict(e) for e in data["entries"]],
+        parent_session_id=data.get("parent_session_id"),
     )
+    for entry_data in data.get("entries") or []:
+        log.append(_entry_from_dict(entry_data))
+    return log
 
 
 def write_log(log: Log, path: Path | str) -> None:
@@ -194,7 +292,11 @@ def read_log(path: Path | str) -> Log:
     """Read a Log from a YAML file written by :func:`write_log`.
 
     Raises:
-        LogSchemaError: if cdd_log_version is unsupported.
+        LogSchemaError: if cdd_log_version is missing, malformed, or
+            of an unsupported MAJOR version (or the file isn't a
+            mapping at the top level — empty file, scalar, list).
+        LogConsistencyError: if the persisted chain is internally
+            inconsistent (corrupt parent_id, iteration skip, etc.).
         FileNotFoundError: if the path does not exist.
     """
     path = Path(path)

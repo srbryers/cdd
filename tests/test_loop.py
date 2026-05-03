@@ -276,3 +276,37 @@ def test_resume_with_mismatched_tier_raises() -> None:
     )
     with pytest.raises(LoopStateError, match="determinism_tier"):
         Loop(adapter=_MemAdapter(), generator=_EchoGen(), log=log)
+
+
+def test_resume_with_disagreeing_session_id_raises() -> None:
+    """Passing both ``session_id`` and ``log`` with different session IDs is a footgun."""
+    log = Log(
+        session_id="logged-session",
+        artifact_type="text",
+        determinism_tier=DeterminismTier.SEMANTIC_B,
+        created_at=datetime(2026, 5, 3, tzinfo=UTC),
+    )
+    with pytest.raises(LoopStateError, match="session_id"):
+        Loop(
+            adapter=_MemAdapter(),
+            generator=_EchoGen(),
+            session_id="conflicting-id",
+            log=log,
+        )
+
+
+def test_resume_with_matching_session_id_is_allowed() -> None:
+    """If the explicit session_id matches the log's, it's redundant but fine."""
+    log = Log(
+        session_id="my-session",
+        artifact_type="text",
+        determinism_tier=DeterminismTier.SEMANTIC_B,
+        created_at=datetime(2026, 5, 3, tzinfo=UTC),
+    )
+    loop = Loop(
+        adapter=_MemAdapter(),
+        generator=_EchoGen(),
+        session_id="my-session",
+        log=log,
+    )
+    assert loop.log.session_id == "my-session"

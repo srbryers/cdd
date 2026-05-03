@@ -11,6 +11,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from cdd.protocols import Adapter, Generator
 from cdd.types import DeterminismTier, ModelIdentity
 
@@ -66,11 +68,8 @@ def test_adapter_persist_load_roundtrip() -> None:
 
 def test_adapter_rejects_wrong_type() -> None:
     a = _MinimalTextAdapter()
-    try:
+    with pytest.raises(TypeError, match="str"):
         a.persist(b"bytes-not-str", namespace="loop-42")
-    except TypeError:
-        return
-    raise AssertionError("expected TypeError on wrong raw_output type")
 
 
 def test_adapter_artifact_type_is_string_identifier() -> None:

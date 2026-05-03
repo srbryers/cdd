@@ -52,8 +52,11 @@ class Adapter(Protocol):
         """Stable identifier for this adapter.
 
         Recorded in log metadata. Examples: ``"text"``, ``"image"``,
-        ``"vegetation_density"``, ``"dialogue_line"``. Use snake_case;
-        keep stable across versions.
+        ``"vegetation_density"``, ``"dialogue_line"``. Use snake_case
+        for the identifier string; PascalCase for the adapter class
+        name itself (e.g., ``class VegetationDensityAdapter`` exporting
+        ``artifact_type = "vegetation_density"``). Keep both stable
+        across versions.
         """
         ...
 

@@ -64,7 +64,7 @@ import cdd            # import name
 
 | | |
 |---|---|
-| Version | 0.0.1 |
+| Version | 0.1.0 |
 | Stability | Pre-alpha |
 | License | MIT |
 | Python | >=3.11 |

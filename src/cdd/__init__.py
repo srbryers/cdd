@@ -12,7 +12,6 @@ conceptual framing.
 from cdd.adapters import TextFileAdapter
 from cdd.generators import EchoGenerator
 from cdd.log import (
-    LOG_SCHEMA_VERSION,
     Log,
     LogConsistencyError,
     LogSchemaError,
@@ -30,7 +29,6 @@ __all__ = [
     "DeterminismTier",
     "EchoGenerator",
     "Generator",
-    "LOG_SCHEMA_VERSION",
     "Log",
     "LogConsistencyError",
     "LogEntry",

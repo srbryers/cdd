@@ -7,8 +7,13 @@ external CDD consumers.
 
 Persistence is content-addressed: the output_ref is built from a
 SHA-256 prefix of the raw output, which means identical generator
-outputs deduplicate to the same file. That's a friendly property
-for SEMANTIC_B replay where re-rolls may converge.
+outputs deduplicate to the same file within a namespace. That's a
+friendly property for SEMANTIC_B replay where re-rolls may converge.
+
+Both ``persist`` and ``load`` reject any path that escapes the
+configured ``base_dir`` (path traversal via crafted namespace or
+output_ref). Hand-edited logs cannot trick the adapter into reading
+or writing arbitrary filesystem locations.
 """
 
 from __future__ import annotations
@@ -37,9 +42,10 @@ class TextFileAdapter:
     determinism_tier: DeterminismTier = DeterminismTier.SEMANTIC_B
 
     HASH_PREFIX_LEN = 16
-    """How many hex chars of SHA-256 to use in the filename. 16 is
-    enough to make collisions extraordinarily unlikely within a single
-    session and keeps paths readable."""
+    """How many hex chars of SHA-256 to use in the filename. 16 hex
+    chars = 64 bits; collision-resistant within a single namespace.
+    Sessions never share namespace by default (namespace = session_id),
+    so the practical collision domain is per-session-per-content."""
 
     def __init__(self, base_dir: Path | str) -> None:
         """Configure the on-disk root for persisted artifacts.
@@ -63,19 +69,60 @@ class TextFileAdapter:
 
         Raises:
             TypeError: if ``raw_output`` is not a ``str``.
+            ValueError: if ``namespace`` contains path separators or
+                otherwise resolves outside ``base_dir``.
         """
         if not isinstance(raw_output, str):
             raise TypeError(
                 f"TextFileAdapter requires a str, got {type(raw_output).__name__}"
             )
+        _validate_namespace(namespace)
 
         digest = hashlib.sha256(raw_output.encode("utf-8")).hexdigest()
         rel_path = f"{namespace}/{digest[: self.HASH_PREFIX_LEN]}.txt"
-        full_path = self._base / rel_path
+
+        full_path = self._resolve_within_base(rel_path)
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(raw_output, encoding="utf-8")
         return rel_path
 
     def load(self, output_ref: str) -> Any:
-        """Read the artifact previously persisted under ``output_ref``."""
-        return (self._base / output_ref).read_text(encoding="utf-8")
+        """Read the artifact previously persisted under ``output_ref``.
+
+        Raises:
+            ValueError: if ``output_ref`` resolves outside ``base_dir``
+                (a hand-edited or untrusted log cannot escape).
+        """
+        full_path = self._resolve_within_base(output_ref)
+        return full_path.read_text(encoding="utf-8")
+
+    # ---------- internal ----------
+
+    def _resolve_within_base(self, rel: str) -> Path:
+        """Resolve ``rel`` under ``base_dir``, refusing any traversal."""
+        base_resolved = self._base.resolve()
+        # Resolve in 'strict=False' mode so non-existent leaves don't
+        # raise during persist; we only need the resolved parent for
+        # the containment check.
+        candidate = (self._base / rel).resolve()
+        try:
+            candidate.relative_to(base_resolved)
+        except ValueError as exc:
+            raise ValueError(
+                f"path escapes base_dir: rel={rel!r} resolved={candidate}"
+            ) from exc
+        return candidate
+
+
+def _validate_namespace(namespace: str) -> None:
+    """Reject namespaces that would escape or destabilize the layout."""
+    if not namespace:
+        raise ValueError("namespace must be a non-empty string")
+    if "/" in namespace or "\\" in namespace:
+        raise ValueError(
+            f"namespace must not contain path separators: {namespace!r}"
+        )
+    if namespace.startswith("."):
+        raise ValueError(
+            f"namespace must not start with '.': {namespace!r}"
+        )

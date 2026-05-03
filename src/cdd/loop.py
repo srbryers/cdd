@@ -107,6 +107,11 @@ class Loop:
                     f"log determinism_tier {log.determinism_tier.value!r} does not match "
                     f"adapter {adapter.determinism_tier.value!r}"
                 )
+            if session_id is not None and session_id != log.session_id:
+                raise LoopStateError(
+                    f"explicit session_id {session_id!r} disagrees with "
+                    f"log.session_id {log.session_id!r}; pass one or the other"
+                )
             self._log = log
         else:
             self._log = Log(

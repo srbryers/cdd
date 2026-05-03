@@ -81,3 +81,48 @@ def test_unicode_persists_correctly(tmp_path: Path) -> None:
 def test_base_dir_property_is_path(tmp_path: Path) -> None:
     a = TextFileAdapter(tmp_path)
     assert a.base_dir == Path(tmp_path)
+
+
+def test_persist_empty_string_round_trips(tmp_path: Path) -> None:
+    """Empty string is a valid output (e.g., a deliberately-blank dialogue line)."""
+    a = TextFileAdapter(tmp_path)
+    ref = a.persist("", namespace="loop-empty")
+    assert a.load(ref) == ""
+
+
+# ---------- path-traversal defenses ----------
+
+
+def test_persist_rejects_namespace_with_path_separator(tmp_path: Path) -> None:
+    a = TextFileAdapter(tmp_path)
+    with pytest.raises(ValueError, match="separator"):
+        a.persist("anything", namespace="../sibling")
+    with pytest.raises(ValueError, match="separator"):
+        a.persist("anything", namespace="nested/sub")
+    with pytest.raises(ValueError, match="separator"):
+        a.persist("anything", namespace="back\\slash")
+
+
+def test_persist_rejects_namespace_starting_with_dot(tmp_path: Path) -> None:
+    a = TextFileAdapter(tmp_path)
+    with pytest.raises(ValueError, match=r"start with '\.'"):
+        a.persist("anything", namespace=".hidden")
+
+
+def test_persist_rejects_empty_namespace(tmp_path: Path) -> None:
+    a = TextFileAdapter(tmp_path)
+    with pytest.raises(ValueError, match="non-empty"):
+        a.persist("anything", namespace="")
+
+
+def test_load_rejects_traversal_output_ref(tmp_path: Path) -> None:
+    """A hand-edited or untrusted log cannot escape base_dir on load."""
+    a = TextFileAdapter(tmp_path)
+    # Write a sibling file outside base_dir to make the test concrete.
+    sibling = tmp_path.parent / "sibling.txt"
+    sibling.write_text("secret", encoding="utf-8")
+    try:
+        with pytest.raises(ValueError, match="escapes base_dir"):
+            a.load("../sibling.txt")
+    finally:
+        sibling.unlink(missing_ok=True)
