@@ -42,9 +42,14 @@ import yaml
 from cdd.types import DeterminismTier, LogEntry, ModelIdentity, Verdict
 
 _LOG_SCHEMA_VERSION = "1.0"
-"""Bumped per SemVer rules:
+"""CDD log schema version. ``MAJOR.MINOR`` (intentionally not full
+SemVer — PATCH is absent because there is no concept of a no-op
+schema fix; every schema change is either backward-compatible
+(MINOR bump) or breaking (MAJOR bump)).
 
-  - MAJOR bump: breaking change to the schema (requires a migrator).
+Bumped per these rules:
+
+  - MAJOR bump: breaking change (requires a migrator).
   - MINOR bump: additive change (older readers ignore unknown fields,
     newer readers warn when reading older logs).
 
