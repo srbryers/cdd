@@ -1,0 +1,119 @@
+{
+  "sprint_number": 2,
+  "date": "2026-05-03",
+  "theme": "CDD v0.1.0 — Core abstractions: Loop, Adapter, Generator, Log + reference text adapter + echo generator. Shipped as a public Python package (srbryers/cdd, MIT) with editable install dogfooded from FATHOMS. 3-round Deep tier review (code + architect, parallel) returned APPROVE-WITH-CHANGES R1, APPROVE R2, APPROVE R3. 16 R1 code findings + 16 R1 architect findings triaged: 16 fixed in this PR, 12 deferred (5 to new v0.1.5 'Protocol hardening' sprint inserted between v0.1.0 and v0.2.0; 3 to v0.2.0; 4 to later sprints), 4 accepted. 1 R2 architect note (docstring tightening) folded. 116 tests pass. Real recovery incident at merge time: chained `gh pr merge && tag && branch -d` swallowed the merge failure, tagged the wrong commit, and deleted the feature branch. Recovered via refs/pull/1/head fetch + bad-tag-delete + FF merge + re-tag. ~10min cost. Saved feedback memory on the chained-destructive-ops failure mode.",
+  "par": 5,
+  "score": 6,
+  "score_label": "bogey",
+  "tickets": [
+    {
+      "id": "S2-1",
+      "title": "Define Loop, LogEntry, Verdict — core types",
+      "approach": "long_iron",
+      "result": "in_the_hole",
+      "hazards": [
+        "Verdict + DeterminismTier as StrEnum (round-trips through YAML cleanly).",
+        "ModelIdentity + LogEntry as frozen dataclasses (immutability for authorship trail).",
+        "LogEntry.extra_params: dict[str, Any] — frozen dataclass freezes the binding, not the dict contents. Documented as runtime convention, not enforced.",
+        "Architect F11 deferred: single-int seed assumption on LogEntry. v0.2.0 ticket S4-3."
+      ],
+      "notes": "Type contract is the persistence contract. 18 tests pin the shape."
+    },
+    {
+      "id": "S2-2",
+      "title": "Define Adapter protocol (artifact-type interface)",
+      "approach": "long_iron",
+      "result": "in_the_hole",
+      "hazards": [
+        "@runtime_checkable Protocol (not ABC). Adapters duck-type; no inheritance forced. isinstance(obj, Adapter) works at runtime.",
+        "Type contract on raw_output is documented runtime convention (TypeError on mismatch), not generic-typed. Defer Adapter[T] generics to v0.1.5/S3-1.",
+        "Architect F1 deferred: generate(prompt: str) -> Any does not survive multi-modal/streaming/async. v0.1.5 ticket S3-1.",
+        "Architect F13 fix-folded: docstring documents snake_case-for-artifact_type vs PascalCase-for-class naming convention."
+      ],
+      "notes": "Protocol is the cleavage CDD needed. Adapter owns artifact type, Generator owns provider, Loop wires them."
+    },
+    {
+      "id": "S2-3",
+      "title": "Define Generator protocol (AI-provider interface)",
+      "approach": "long_iron",
+      "result": "in_the_hole",
+      "hazards": [
+        "model_identity property + supports_seed property + generate(prompt, seed, extra_params) -> Any.",
+        "Architect F5 deferred: determinism_tier on Adapter when Generator decides reproducibility. v0.1.5 ticket S3-3 makes Loop negotiate tier from adapter+generator+user request.",
+        "Architect F14 deferred: supports_seed naming is misleading on EchoGenerator (deterministic but not RNG-seeded). v0.7.0+ ticket S9-2 (rename in API freeze sprint).",
+        "EchoGenerator reference impl ships with declarative supports_seed=True for tests."
+      ],
+      "notes": "Smallest possible protocol. Real generators (Anthropic, OpenAI, fal.ai) land in v0.2.0/S4."
+    },
+    {
+      "id": "S2-4",
+      "title": "Log schema v1 — versioned YAML, replay-capable",
+      "approach": "long_iron",
+      "result": "in_the_hole",
+      "hazards": [
+        "Architect F2 fix-folded: schema version is now SemVer 'MAJOR.MINOR' (was int 1). Same-MAJOR forward-compat: higher MINOR reads with warnings.warn(stacklevel=3); lower MINOR reads cleanly; different MAJOR raises LogSchemaError.",
+        "Architect F6 fix-folded: _LOG_SCHEMA_VERSION underscore-private; not in __all__. Public API drops to 16 symbols.",
+        "Architect F12 fix-folded: Log.parent_session_id added (str | None = None) — multi-session authorship lineage hook. Round-trips; omitted from YAML when None.",
+        "Code F1 + F2 + F7 fix-folded: from_dict guards on non-dict / missing version key / replays each entry through Log.append for chain integrity on read.",
+        "Code F8 fix-folded: 6 negative tests added (empty file, null YAML, scalar YAML, missing version, corrupt parent_id, iteration skip).",
+        "Code F11 accepted: to_dict/from_dict not exported from __init__ (kept private alongside _LOG_SCHEMA_VERSION).",
+        "Code F15 accepted: Log.entries is a list — direct mutation bypasses append discipline. Documented as 'append is the discipline.'",
+        "Architect F8 deferred: YAML scaling cliff for 100+ iteration logs. v0.4.0 ticket S6-3 (JSONL append mode).",
+        "Architect F10 deferred: extra_params has no schema. v0.6.0 ticket S8-4 (Adapter.params_schema)."
+      ],
+      "notes": "19 base tests + 13 fix-fold tests = 32 tests on the log layer. Schema version + chain replay are the most load-bearing decisions."
+    },
+    {
+      "id": "S2-5",
+      "title": "Reference text adapter + EchoGenerator + Loop integration",
+      "approach": "long_iron",
+      "result": "in_the_hole",
+      "hazards": [
+        "TextFileAdapter content-addressed via SHA-256 prefix (16 hex chars = 64 bits per-namespace).",
+        "Code F3 fix-folded: path-traversal defense in persist + load (rejects ../ traversal, absolute-path injection, namespace with separators or leading dot, empty namespace).",
+        "Code F12 fix-folded: HASH_PREFIX_LEN docstring tightened to articulate per-namespace collision domain.",
+        "Code F14 fix-folded: empty-string round-trip test added.",
+        "EchoGenerator deterministic stub for tests-without-API-keys.",
+        "Loop holds at most one pending proposal at a time. propose() then review() forces the discipline at the type level.",
+        "Code F9 fix-folded: Loop(session_id=X, log=Y_with_different_id) raises LoopStateError instead of silently ignoring session_id.",
+        "Architect F3 + F9 deferred: synchronous eager persist forces 4096x4096 mask writes per iteration for vegetation adapter. v0.1.5 ticket S3-2 (stage/commit/discard).",
+        "Architect F4 deferred: 'one pending at a time' forecloses 'show me 4, pick one' UX. v0.1.5 ticket S3-4 documents N-rejects-1-accept pattern with shared batch_id; first-class API in v0.3.0/S5 if CLI surfaces it."
+      ],
+      "notes": "End-to-end integration tests: full critique cycle (reject -> reject -> refine -> accept), session persist + resume across YAML round-trip, human-readable YAML output verification."
+    }
+  ],
+  "deferred_findings": [
+    "v0.1.5 / S3-1: GenerationRequest/Result types + generic Adapter[T]/Generator[T] (architect F1)",
+    "v0.1.5 / S3-2: Adapter stage/commit/discard split for deferred persistence (architect F3, F9)",
+    "v0.1.5 / S3-3: Determinism tier negotiation in Loop (architect F5)",
+    "v0.1.5 / S3-4: Document batch-propose pattern (architect F4)",
+    "v0.2.0 / S4-2: Persist-failure recovery surfacing raw_output (code F6 — surfaces with real generators)",
+    "v0.2.0 / S4-3: Single-int seed -> seed-as-extra-params convention (architect F11)",
+    "v0.2.0 / S4-4: cdd.testing protocol-conformance harness + InMemoryAdapter (architect F7)",
+    "v0.4.0 / S6-3: JSONL append mode for large logs (architect F8)",
+    "v0.6.0 / S8-4: Adapter.params_schema for replay validation (architect F10)",
+    "v0.7.0+ / S9-2: supports_seed -> honors_seed rename in API freeze (architect F14)",
+    "v0.1.5 / S3 incidental: SemVer parser tightening to reject negative ints, leading zeros, whitespace-padded values (R2 code N1)",
+    "v1.0.0 / S10-3: Subordinate FATHOMS in README (architect F16)"
+  ],
+  "review_summary": {
+    "tier": "deep",
+    "rounds_completed": 3,
+    "round_1_findings": 32,
+    "round_2_findings": 1,
+    "round_3_findings": 0,
+    "fix_now_landed": 17,
+    "deferred": 12,
+    "accepted": 4,
+    "verdict": "APPROVED FOR MERGE",
+    "notable_findings": [
+      "MAJOR (architect F1): Generator(prompt:str)->Any does not survive multi-modal/streaming/async pressure. Deferred to v0.1.5/S3-1 — the new sprint inserted specifically to fold protocol-shape findings before v0.2.0 calcifies the wrong shape.",
+      "MAJOR (architect F2): Schema version was int 1 with strict-equality. Fix-folded to SemVer 'MAJOR.MINOR' string with major-equal + minor-tolerant parsing. Forward-compat warning via warnings.warn(stacklevel=3).",
+      "MAJOR (architect F12): No multi-session authorship lineage. Fix-folded by adding Log.parent_session_id field. Cheap to add now; impossible to retrofit post-v1.0 without breaking replay tools.",
+      "MAJOR (code F1): read_log on empty/null YAML crashed with AttributeError. Fix-folded; 3 negative tests added.",
+      "MAJOR (code F2): from_dict bypassed Log.append chain validation. Fix-folded by replaying every entry through append; 2 negative tests added.",
+      "MAJOR (code F3): Path traversal in TextFileAdapter via crafted namespace or output_ref. Fix-folded with _resolve_within_base + _validate_namespace; 4 negative tests added including absolute-path injection.",
+      "Roadmap restructured: 9 sprints to 10. New S3 'v0.1.5 — Protocol hardening' inserted between v0.1.0 and v0.2.0 specifically to fold deferred protocol-shape findings before any external consumer (Anthropic generator, CLI, FATHOMS adapter) calcifies the current shape."
+    ]
+  }
+}
