@@ -42,3 +42,6 @@ htmlcov/
 # IDE
 .idea/
 .vscode/
+
+# SLOPE local state (sessions, handoffs, sprint-state, DB)
+.slope/

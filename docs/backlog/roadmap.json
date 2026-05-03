@@ -1,0 +1,288 @@
+{
+  "name": "CDD Roadmap",
+  "description": "Critique-Driven Development — pre-alpha through v1.0 stability. Each sprint corresponds to a SemVer release. Originated as authoring discipline for FATHOMS; dogfooded from there until stable.",
+  "phases": [
+    {
+      "name": "Pre-alpha — package + abstractions",
+      "sprints": [1, 2, 3]
+    },
+    {
+      "name": "Alpha — CLI + dogfooding",
+      "sprints": [4, 5, 6]
+    },
+    {
+      "name": "Beta — stability + extraction",
+      "sprints": [7, 8, 9]
+    }
+  ],
+  "sprints": [
+    {
+      "id": 1,
+      "theme": "v0.0.1 — Bootstrap",
+      "par": 3,
+      "slope": 0,
+      "type": "infra",
+      "status": "complete",
+      "tickets": [
+        {
+          "key": "S1-1",
+          "title": "Repo + MIT + scaffold + smoke test",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S1-2",
+          "title": "Editable install verified from FATHOMS",
+          "club": "wedge",
+          "complexity": "small"
+        },
+        {
+          "key": "S1-3",
+          "title": "README v1 — discipline writeup seed",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "theme": "v0.1.0 — Core abstractions",
+      "par": 5,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S2-1",
+          "title": "Define Loop, LogEntry, Verdict — core types",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S2-2",
+          "title": "Define Adapter protocol (artifact-type interface)",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S2-3",
+          "title": "Define Generator protocol (AI-provider interface)",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S2-4",
+          "title": "Log schema v1 — versioned YAML, replay-capable",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S2-5",
+          "title": "Reference text adapter (validates abstractions)",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "theme": "v0.2.0 — First AI generator",
+      "par": 4,
+      "slope": 1,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S3-1",
+          "title": "Anthropic generator implementation",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S3-2",
+          "title": "Model identity + version recording in log",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S3-3",
+          "title": "Determinism Tier A/B/C declared per adapter",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S3-4",
+          "title": "Integration test: generate -> review -> log -> replay",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "theme": "v0.3.0 — CLI",
+      "par": 5,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S4-1",
+          "title": "cdd init — scaffolds a critique session",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S4-2",
+          "title": "cdd review — interactive iteration loop",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S4-3",
+          "title": "cdd replay — regenerate artifact from log",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S4-4",
+          "title": "cdd diff — compare two log iterations",
+          "club": "wedge",
+          "complexity": "small"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "theme": "v0.4.0 — More generators (OpenAI, fal.ai)",
+      "par": 4,
+      "slope": 1,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S5-1",
+          "title": "OpenAI generator",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S5-2",
+          "title": "fal.ai image generator (for vegetation/texture work)",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S5-3",
+          "title": "Multi-provider integration tests",
+          "club": "wedge",
+          "complexity": "small"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "theme": "v0.5.0 — First FATHOMS adapter (dogfood proof)",
+      "par": 5,
+      "slope": 3,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S6-1",
+          "title": "Vegetation density adapter (in fathoms-game/town/cdd_adapters/)",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S6-2",
+          "title": "Adapter consumes splatmap + slope + water mask",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S6-3",
+          "title": "Critique loop validates a real Nassau biome",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S6-4",
+          "title": "Issues filed against srbryers/cdd from dogfood",
+          "club": "wedge",
+          "complexity": "small"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "theme": "v0.6.0 — Determinism enforcement + replay fidelity",
+      "par": 4,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S7-1",
+          "title": "Tier A strict-replay byte-identical guarantees",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S7-2",
+          "title": "Tier B graceful degradation on model deprecation",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S7-3",
+          "title": "Replay diff visualization",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "theme": "v0.7.0+ — Hardening from dogfood feedback",
+      "par": 4,
+      "slope": 2,
+      "type": "feature",
+      "tickets": [
+        {
+          "key": "S8-1",
+          "title": "Address top issues filed during S6+",
+          "club": "long_iron",
+          "complexity": "multi_package"
+        },
+        {
+          "key": "S8-2",
+          "title": "API freeze candidate — public surface review",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "theme": "v1.0.0 — Stable + PyPI release",
+      "par": 4,
+      "slope": 2,
+      "type": "release",
+      "tickets": [
+        {
+          "key": "S9-1",
+          "title": "Public API stability commitment",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S9-2",
+          "title": "Publish cdd-loop to PyPI",
+          "club": "short_iron",
+          "complexity": "standard"
+        },
+        {
+          "key": "S9-3",
+          "title": "Discipline writeup published (blog/talk)",
+          "club": "short_iron",
+          "complexity": "standard"
+        }
+      ]
+    }
+  ]
+}
